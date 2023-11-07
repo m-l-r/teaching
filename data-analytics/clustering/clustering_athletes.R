@@ -1,13 +1,16 @@
 # this code is largely based on https://github.com/bkrai/Top-10-Machine-Learning-Methods-With-R/blob/master/ClusterAnalysis
 # run preprocessing_athlete_data first to perform cluster analysis on data from https://www.kaggle.com/datasets/shashwatwork/injury-prediction-for-competitive-runners
-
+library(cluster) 
 library(viridis)
+library(factoextra)
+library(ggpubr)
 
 # Cluster Analysis
 mydata <- athelete_data_means.cluster_subset
 #mydata <- athelete_data_means.cluster_subset[,c(3,5,6,13)]
 str(mydata)
 head(mydata)
+summary(mydata)
 pairs(mydata)
 
 # Scatter plot 
@@ -45,17 +48,30 @@ aggregate(nor,list(member),mean)
 aggregate(mydata,list(member),mean)
 
 # Silhouette Plot
-library(cluster) 
+
 plot(silhouette(cutree(mydata.hclust,k=3), distance)) 
 
 # Scree Plot
-wss <- (nrow(nor)-1)*sum(apply(nor,2,var))
-for (i in 2:20) wss[i] <- sum(kmeans(nor, centers=i)$withinss)
-plot(1:20, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares") 
+#wss <- (nrow(nor)-1)*sum(apply(nor,2,var))
+#for (i in 2:20) wss[i] <- sum(kmeans(nor, centers=i)$withinss)
+#plot(1:20, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares") 
+
+
+fviz_nbclust(nor, kmeans, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2)+
+  labs(subtitle = "Elbow method")
+
+# Silhouette method
+fviz_nbclust(nor, kmeans, method = "silhouette")+
+  labs(subtitle = "Silhouette method")
+
+
+fviz_nbclust(nor, kmeans, nstart = 25,  method = "gap_stat", nboot = 50)+
+  labs(subtitle = "Gap statistic method")
 
 # K-means clustering
 set.seed(123)
-kc<-kmeans(nor,5)
+kc<-kmeans(nor,3)
 
 # average total kms and average max recovery
 plot(mydata$`total kms`~ mydata$`max recovery`, data = mydata, col=kc$cluster)
@@ -92,7 +108,7 @@ ggplot(cluster_means.long, aes(fill=var, y=val, x=Group.1)) +
 mydata.boxplot <- mydata
 mydata.boxplot$cluster <- member
 
-library(ggpubr)
+
 my_comparisons <- list( c("1", "2"), c("1", "3"), c("2", "3") )
 ggboxplot(mydata.boxplot, x = "cluster", y = "num_injuries",
           color = "cluster")+ 
